@@ -31,18 +31,20 @@ class ModbusOperations(QObject):
             self.pezPresChanged.emit() #emetto il segnale di cambiamento
     
     def start_operations(self):
-        client = ModbusTcpClient('10.75.20.27', port=502)
-        front_result = client.read_coils(address=0, count=1)
-        back_result = client.read_coils(address=1, count=1)
+        client = ModbusTcpClient('192.168.200.170', port=502)
+        front_result = client.read_coils(address=0x00, count=1)
+        back_result = client.read_coils(address=0x01, count=1)
         front_prectoggle = front_result.bits[0]
         back_prectoggle = back_result.bits[0]
         conta_pezzi = 10
         while(True):
+            front_result = client.read_coils(address=0, count=1)
+            back_result = client.read_coils(address=1, count=1)
             try:
                 if (front_result.isError() or back_result.isError()):
                     print("Errore nella lettura dei toggle:", front_result, back_result)
                 else:
-                    print("Valore del toggle anteriore:" + front_result.bits[0] + " Valore del toggle posteriore:" + back_result.bits[0])
+                    print("Valore del toggle anteriore:" + str(front_result.bits[0]) + " Valore del toggle posteriore:" + str(back_result.bits[0]))
                     current_front_toggle = front_result.bits[0]
                     current_back_toggle = back_result.bits[0]
                     if current_front_toggle != front_prectoggle:
@@ -61,9 +63,7 @@ class ModbusOperations(QObject):
                     if self.pezPres == 0:
                         time.sleep(5) #attendo 5 secondi
                         self.pezPres = 10 #resetto il numero di pezzi presenti sulla rulliera
-                #Rileggo i valori dei toggle
-                front_result = client.read_coils(address=0, count=1)
-                back_result = client.read_coils(address=1, count=1)
+
             except Exception as e:
                 print("Errore durante la comunicazione Modbus TCP:", e)   
             except KeyboardInterrupt:

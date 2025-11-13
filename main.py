@@ -31,21 +31,27 @@ class ModbusOperations(QObject):
             self.pezPresChanged.emit() #emetto il segnale di cambiamento
     
     def start_operations(self):
-        client = ModbusTcpClient('192.168.200.170', port=502)
-        result = client.read_coils(address=0, count=1)
-        prectoggle = result.bits[0]
+        client = ModbusTcpClient('10.75.20.27', port=502)
+        front_result = client.read_coils(address=0, count=1)
+        back_result = client.read_coils(address=1, count=1)
+        front_prectoggle = front_result.bits[0]
+        back_prectoggle = back_result.bits[0]
         conta_pezzi = 10
         while(True):
             try:
-                # Leggo un registro di holding a partire dall'indirizzo 1
-                result = client.read_coils(address=0, count=1)
-                if result.isError():
-                    print("Errore nella lettura del toggle:", result)
+                if (front_result.isError() or back_result.isError()):
+                    print("Errore nella lettura dei toggle:", front_result, back_result)
                 else:
-                    print("Valore del toggle letto:", result.bits[0])
-                    current_toggle = result.bits[0]
-                    if current_toggle != prectoggle:
-                        prectoggle = current_toggle
+                    print("Valore del toggle anteriore:" + front_result.bits[0] + " Valore del toggle posteriore:" + back_result.bits[0])
+                    current_front_toggle = front_result.bits[0]
+                    current_back_toggle = back_result.bits[0]
+                    if current_front_toggle != front_prectoggle:
+                        front_prectoggle = current_front_toggle
+                        conta_pezzi += 1
+                        self.pezPres += 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        print(f"Pezzi presenti sulla rulliera: {self._pezPres}")
+                    if current_back_toggle != back_prectoggle:
+                        back_prectoggle = current_back_toggle
                         conta_pezzi -= 1
                         self.pezPres -= 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres}")
@@ -55,6 +61,9 @@ class ModbusOperations(QObject):
                     if self.pezPres == 0:
                         time.sleep(5) #attendo 5 secondi
                         self.pezPres = 10 #resetto il numero di pezzi presenti sulla rulliera
+                #Rileggo i valori dei toggle
+                front_result = client.read_coils(address=0, count=1)
+                back_result = client.read_coils(address=1, count=1)
             except Exception as e:
                 print("Errore durante la comunicazione Modbus TCP:", e)   
             except KeyboardInterrupt:

@@ -12,51 +12,87 @@ pz_min = 5 # Numero di pezzi minimi che devono essere presenti sulla rulliera
 
 class ModbusOperations(QObject):
     # Segnale che notifica il cambiamento del numero di pezzi sulla rulliera
-    pezPresChanged = Signal()
+    pezPresChanged1 = Signal()
+    pezPresChanged2 = Signal()
 
     def __init__(self):
         super().__init__()
-        self._pezPres = 10 # Numero di pezzi presenti sulla rulliera
+        self._pezPres1 = 10 # Numero di pezzi presenti sulla prima rulliera
+        self._pezPres2 = 10 # Numero di pezzi presenti sulla seconda rulliera
 
-    @Property(int, notify=pezPresChanged)
+    @Property(int, notify=pezPresChanged1)
     def pezPres(self):
         """Getter automatico per QML"""
-        return self._pezPres
+        return self._pezPres1
     
     @pezPres.setter
     def pezPres(self, value):
         """Setter automatico, emette il segnale se cambia"""
-        if self._pezPres != value:
-            self._pezPres = value
-            self.pezPresChanged.emit() #emetto il segnale di cambiamento
+        if self._pezPres1 != value:
+            self._pezPres1 = value
+            self.pezPresChanged1.emit() #emetto il segnale di cambiamento
+
+    @Property(int, notify=pezPresChanged2)
+    def pezPres2(self):
+        """Getter automatico per QML della seconda rulliera"""
+        return self._pezPres2
     
+    @pezPres2.setter
+    def pezPres2(self, value):
+        """Setter automatico, emette il segnale se cambia"""
+        if self._pezPres2 != value:
+            self._pezPres2 = value
+            self.pezPresChanged2.emit() #emetto il segnale di cambiamento
+
     def start_operations(self):
         client = ModbusTcpClient('192.168.200.170', port=502)
-        front_result = client.read_coils(address=0x00, count=1)
-        back_result = client.read_coils(address=0x01, count=1)
-        front_prectoggle = front_result.bits[0]
-        back_prectoggle = back_result.bits[0]
+        # Leggo i toggle iniziali
+        front_result1 = client.read_coils(address=0x00, count=1)
+        back_result1 = client.read_coils(address=0x01, count=1)
+        front_result2 = client.read_coils(address=0x02, count=1)
+        back_result2 = client.read_coils(address=0x03, count=1)
+        # Salvo i valori iniziali per il confronto con quelli attuali
+        front_prectoggle1 = front_result1.bits[0]
+        back_prectoggle1 = back_result1.bits[0]
+        front_prectoggle2 = front_result2.bits[0]
+        back_prectoggle2 = back_result2.bits[0]
         conta_pezzi = 10
         while(True):
-            front_result = client.read_coils(address=0, count=1)
-            back_result = client.read_coils(address=1, count=1)
+            front_result1 = client.read_coils(address=0, count=1)
+            front_result2 = client.read_coils(address=2, count=1)
+            back_result1 = client.read_coils(address=1, count=1)
+            back_result2 = client.read_coils(address=3, count=1)
             try:
-                if (front_result.isError() or back_result.isError()):
-                    print("Errore nella lettura dei toggle:", front_result, back_result)
+                if (front_result1.isError() or back_result1.isError() or front_result2.isError() or back_result2.isError()):
+                    print("Errore nella lettura dei toggle:", front_result1, back_result1, front_result2, back_result2)
                 else:
-                    print("Valore del toggle anteriore:" + str(front_result.bits[0]) + " Valore del toggle posteriore:" + str(back_result.bits[0]))
-                    current_front_toggle = front_result.bits[0]
-                    current_back_toggle = back_result.bits[0]
-                    if current_front_toggle != front_prectoggle:
-                        front_prectoggle = current_front_toggle
+                    print("Prima rulliera --> valore del toggle anteriore:" + str(front_result1.bits[0]) + ", valore del toggle posteriore:" + str(back_result1.bits[0]))
+                    current_front_toggle1 = front_result1.bits[0]
+                    current_back_toggle1 = back_result1.bits[0]
+                    current_front_toggle2 = front_result2.bits[0]
+                    current_back_toggle2 = back_result2.bits[0]
+                    # Controllo i cambiamenti di stato dei toggle nella PRIMA RULLIERA
+                    if current_front_toggle1 != front_prectoggle1:
+                        front_prectoggle1 = current_front_toggle1
                         conta_pezzi += 1
                         self.pezPres += 1 # Aggiorno il valore globale per l'interfaccia grafica
-                        print(f"Pezzi presenti sulla rulliera: {self._pezPres}")
-                    if current_back_toggle != back_prectoggle:
-                        back_prectoggle = current_back_toggle
+                        print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
+                    if current_back_toggle1 != back_prectoggle1:
+                        back_prectoggle1 = current_back_toggle1
                         conta_pezzi -= 1
                         self.pezPres -= 1 # Aggiorno il valore globale per l'interfaccia grafica
-                        print(f"Pezzi presenti sulla rulliera: {self._pezPres}")
+                        print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
+                    # Controllo i cambiamenti di stato dei toggle nella SECONDA RULLIERA
+                    if current_front_toggle2 != front_prectoggle2:
+                        front_prectoggle2 = current_front_toggle2
+                        conta_pezzi += 1
+                        self.pezPres += 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
+                    if current_back_toggle2 != back_prectoggle2:
+                        back_prectoggle2 = current_back_toggle2
+                        conta_pezzi -= 1
+                        self.pezPres -= 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
                     if self.pezPres < pz_min:
                         print("Attenzione: numero di pezzi sotto la soglia minima!")
                         # QUI DOVREI LANCIARE MISSIONE AD AMR

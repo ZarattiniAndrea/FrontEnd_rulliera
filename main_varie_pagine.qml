@@ -39,16 +39,71 @@ ApplicationWindow {
 
             ColumnLayout 
             {
-                anchors.centerIn: parent
+                x : 150
+                y : 150
                 spacing: 20
+
+                //Testo di intestazione
+                Text
+                {
+                    text: "Prima Rulliera"
+                    font.pointSize: 10
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.alignment: Qt.AlignHCenter
+                }
 
                 // Cerchio del semaforo
                 Rectangle 
                 {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    Layout.preferredWidth: 100
-                    Layout.preferredHeight: 100
-                    radius: 50
+                    id : semaforoPrimaRulliera
+                    Layout.alignment: Qt.AlignLeft
+                    Layout.preferredWidth: 150
+                    Layout.preferredHeight: 150
+                    radius: 100
+                    color: getColor(modbusOperations.pezPres1)
+                    border.color: "black"
+                    border.width: 2
+
+                    // Transizione animata per il cambio di colore
+                    Behavior on color 
+                    {
+                        ColorAnimation { duration: 300 }
+                    }
+                }
+
+                // Testo che mostra il valore
+                Text 
+                {
+                    text: "Valore: " + getValue(modbusOperations.pezPres1)
+                    font.pointSize: 20
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.alignment: Qt.AlignHCenter
+                }
+            }
+
+            ColumnLayout 
+            {
+                x : 500
+                y : 150
+                spacing: 20
+
+                //Testo di intestazione
+                Text
+                {
+                    text: "Seconda Rulliera"
+                    font.pointSize: 10
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                // Cerchio del semaforo
+                Rectangle 
+                {
+                    id: semaforoSecondaRulliera
+                    Layout.alignment: Qt.AlignRight
+                    Layout.preferredWidth: 150
+                    Layout.preferredHeight: 150
+                    radius: 100
                     color: getColor(modbusOperations.pezPres)
                     border.color: "black"
                     border.width: 2
@@ -63,7 +118,7 @@ ApplicationWindow {
                 // Testo che mostra il valore
                 Text 
                 {
-                    text: "Valore: " + getValue(modbusOperations.pezPres)
+                    text: "Valore: " + getValue(modbusOperations.pezPres2)
                     font.pointSize: 20
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter

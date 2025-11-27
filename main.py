@@ -21,12 +21,12 @@ class ModbusOperations(QObject):
         self._pezPres2 = 10 # Numero di pezzi presenti sulla seconda rulliera
 
     @Property(int, notify=pezPresChanged1)
-    def pezPres(self):
+    def pezPres1(self):
         """Getter automatico per QML"""
         return self._pezPres1
-    
-    @pezPres.setter
-    def pezPres(self, value):
+
+    @pezPres1.setter
+    def pezPres1(self, value):
         """Setter automatico, emette il segnale se cambia"""
         if self._pezPres1 != value:
             self._pezPres1 = value
@@ -67,6 +67,7 @@ class ModbusOperations(QObject):
                     print("Errore nella lettura dei toggle:", front_result1, back_result1, front_result2, back_result2)
                 else:
                     print("Prima rulliera --> valore del toggle anteriore:" + str(front_result1.bits[0]) + ", valore del toggle posteriore:" + str(back_result1.bits[0]))
+                    print("Seconda rulliera --> valore del toggle anteriore:" + str(front_result2.bits[0]) + ", valore del toggle posteriore:" + str(back_result2.bits[0]))
                     current_front_toggle1 = front_result1.bits[0]
                     current_back_toggle1 = back_result1.bits[0]
                     current_front_toggle2 = front_result2.bits[0]
@@ -75,30 +76,36 @@ class ModbusOperations(QObject):
                     if current_front_toggle1 != front_prectoggle1:
                         front_prectoggle1 = current_front_toggle1
                         conta_pezzi += 1
-                        self.pezPres += 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        self.pezPres1 += 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
                     if current_back_toggle1 != back_prectoggle1:
                         back_prectoggle1 = current_back_toggle1
                         conta_pezzi -= 1
-                        self.pezPres -= 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        self.pezPres1 -= 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
                     # Controllo i cambiamenti di stato dei toggle nella SECONDA RULLIERA
                     if current_front_toggle2 != front_prectoggle2:
                         front_prectoggle2 = current_front_toggle2
                         conta_pezzi += 1
-                        self.pezPres += 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        self.pezPres2 += 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
                     if current_back_toggle2 != back_prectoggle2:
                         back_prectoggle2 = current_back_toggle2
                         conta_pezzi -= 1
-                        self.pezPres -= 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        self.pezPres2 -= 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
-                    if self.pezPres < pz_min:
+                    if self.pezPres1 < pz_min:
                         print("Attenzione: numero di pezzi sotto la soglia minima!")
                         # QUI DOVREI LANCIARE MISSIONE AD AMR
-                    if self.pezPres == 0:
+                    if self.pezPres2 < pz_min:
+                        print("Attenzione: numero di pezzi sotto la soglia minima!")
+                        # QUI DOVREI LANCIARE MISSIONE AD AMR
+                    if self.pezPres1 == 0:
                         time.sleep(5) #attendo 5 secondi
-                        self.pezPres = 10 #resetto il numero di pezzi presenti sulla rulliera
+                        self.pezPres1 = 10 #resetto il numero di pezzi presenti sulla rulliera
+                    if self.pezPres2 == 0:
+                        time.sleep(5) #attendo 5 secondi
+                        self.pezPres2 = 10 #resetto il numero di pezzi presenti sulla rulliera
 
             except Exception as e:
                 print("Errore durante la comunicazione Modbus TCP:", e)   

@@ -104,7 +104,7 @@ ApplicationWindow {
                     Layout.preferredWidth: 150
                     Layout.preferredHeight: 150
                     radius: 100
-                    color: getColor(modbusOperations.pezPres)
+                    color: getColor(modbusOperations.pezPres2)
                     border.color: "black"
                     border.width: 2
 

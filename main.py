@@ -7,6 +7,8 @@ import time
 import threading
 import sqlite3
 import sys
+import dbSet
+from dbSet import set_db
 
 pz_min = 5 # Numero di pezzi minimi che devono essere presenti sulla rulliera
 
@@ -121,6 +123,8 @@ class ModbusOperations(QObject):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     modbus_operations = ModbusOperations()
+    # Avvio impostazioni del database
+    set_db()
     thread_modbus = threading.Thread(target=modbus_operations.start_operations)
     thread_modbus.daemon = True
     thread_modbus.start()

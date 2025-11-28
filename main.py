@@ -23,6 +23,8 @@ class ModbusOperations(QObject):
         super().__init__()
         self._pezPres1 = 10 # Numero di pezzi presenti sulla prima rulliera
         self._pezPres2 = 10 # Numero di pezzi presenti sulla seconda rulliera
+        data.setParts(1, 10) # Imposto 10 pezzi sulla prima rulliera
+        data.setParts(2, 10) # Imposto 10 pezzi sulla seconda rulliera
 
     @Property(int, notify=pezPresChanged1)
     def pezPres1(self):

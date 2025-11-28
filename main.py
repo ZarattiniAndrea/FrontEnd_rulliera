@@ -9,6 +9,8 @@ import sqlite3
 import sys
 import dbSet
 from dbSet import set_db
+import data
+import random
 
 pz_min = 5 # Numero di pezzi minimi che devono essere presenti sulla rulliera
 
@@ -45,6 +47,8 @@ class ModbusOperations(QObject):
         if self._pezPres2 != value:
             self._pezPres2 = value
             self.pezPresChanged2.emit() #emetto il segnale di cambiamento
+            data.setParts(1, 10) # Imposto 10 pezzi sulla prima rulliera
+            data.setParts(2, 10) # Imposto 10 pezzi sulla seconda rulliera
 
     def start_operations(self):
         client = ModbusTcpClient('192.168.200.170', port=502)
@@ -79,23 +83,28 @@ class ModbusOperations(QObject):
                         front_prectoggle1 = current_front_toggle1
                         conta_pezzi += 1
                         self.pezPres1 += 1 # Aggiorno il valore globale per l'interfaccia grafica
+                        data.insertPart(1) # Aggiungo un pezzo nel database
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
                     if current_back_toggle1 != back_prectoggle1:
                         back_prectoggle1 = current_back_toggle1
                         conta_pezzi -= 1
                         self.pezPres1 -= 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
+                        data.removePart(1) # Rimuovo un pezzo dal database
                     # Controllo i cambiamenti di stato dei toggle nella SECONDA RULLIERA
                     if current_front_toggle2 != front_prectoggle2:
                         front_prectoggle2 = current_front_toggle2
                         conta_pezzi += 1
                         self.pezPres2 += 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
+                        data.insertPart(2) # Aggiungo un pezzo nel database
                     if current_back_toggle2 != back_prectoggle2:
                         back_prectoggle2 = current_back_toggle2
                         conta_pezzi -= 1
                         self.pezPres2 -= 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
+                        data.removePart(2) # Rimuovo un pezzo dal database
+                    # Controllo se il numero di pezzi è sotto la soglia minima
                     if self.pezPres1 < pz_min:
                         print("Attenzione: numero di pezzi sotto la soglia minima!")
                         # QUI DOVREI LANCIARE MISSIONE AD AMR
@@ -110,14 +119,15 @@ class ModbusOperations(QObject):
                         self.pezPres2 = 10 #resetto il numero di pezzi presenti sulla rulliera
 
             except Exception as e:
-                print("Errore durante la comunicazione Modbus TCP:", e)   
+                print("Errore durante la comunicazione Modbus TCP:", e)
+                client.close()
+                break
             except KeyboardInterrupt:
                 print("Chiusura del client Modbus TCP.")
                 client.close()
                 break
                 
-                        
-            
+                
     #pz_pres = Property(int, get_pres, set_pres, notify=pz_pres_changed)
 
 if __name__ == "__main__":

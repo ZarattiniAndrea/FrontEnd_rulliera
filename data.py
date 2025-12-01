@@ -11,31 +11,38 @@ import sqlite3
     - mittente: numero della rulliera che invia l'ordine (intero)
     - quantità: numero di pezzi richiesti nell'ordine (intero)
     - stato_ordine: stato dell'ordine (testo, es: IN PAUSA, IN CORSO, RICEVUTO, TERMINATO)
-    """
+"""
 
 class Connection:
     def __init__(self, db_name="modbus_toggle.db"):
         self.connessione = sqlite3.connect(db_name)
         self.cursore = self.connessione.cursor()
 
-def setParts(id_rulliera, quantity):
-    conn = Connection()
-    conn.cursore.execute("UPDATE rulliera SET pezzi = ?, time = CURRENT_TIMESTAMP WHERE id_rulliera = ?", (quantity, id_rulliera))
-    conn.connessione.commit()
-    conn.connessione.close()
+    def setParts(self, id_rulliera, quantity):
+        self.cursore.execute("UPDATE rulliera SET pezzi = ?, time = CURRENT_TIMESTAMP WHERE id_rulliera = ?", (quantity, id_rulliera))
+        self.connessione.commit()
 
-def insertPart(id_rulliera):
-    conn = Connection()
-    conn.cursore.execute("UPDATE rulliera SET pezzi = pezzi+1, time = CURRENT_TIMESTAMP WHERE id_rulliera = ?", (id_rulliera,))
-    conn.connessione.commit()
-    conn.connessione.close() #quando chiudo la connessione, l'oggetto viene rimosso automaticamente dal garbage collector
+    def insertPart(self, id_rulliera):
+        self.cursore.execute("UPDATE rulliera SET pezzi = pezzi+1, time = CURRENT_TIMESTAMP WHERE id_rulliera = ?", (id_rulliera,))
+        self.connessione.commit()
 
-def removePart(id_rulliera):
-    conn = Connection()
-    conn.cursore.execute("UPDATE rulliera SET pezzi = pezzi - 1, time = CURRENT_TIMESTAMP WHERE id_rulliera = ?", (id_rulliera,))
-    conn.connessione.commit()
-    conn.connessione.close() 
+    def removePart(self, id_rulliera):
+        self.cursore.execute("UPDATE rulliera SET pezzi = pezzi - 1, time = CURRENT_TIMESTAMP WHERE id_rulliera = ?", (id_rulliera,))
+        self.connessione.commit() 
 
-def rechargeParts(id_rulliera, quantity):
-    conn = Connection()
+    def rechargeParts(self, id_rulliera, quantity):
+        self.cursore.execute("UPDATE rulliera SET pezzi = pezzi + ?, time = CURRENT_TIMESTAMP WHERE id_rulliera = ?", (quantity, id_rulliera))
+        self.connessione.commit()
 
+    def getParts(self, id_rulliera):
+        self.cursore.execute("SELECT pezzi FROM rulliera WHERE id_rulliera = ?", (id_rulliera,))
+        result = self.cursore.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+        
+    def getAllParts(self):
+        self.cursore.execute("SELECT * FROM rulliera")
+        results = self.cursore.fetchall()
+        return results

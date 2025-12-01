@@ -9,6 +9,7 @@ import sqlite3
 import sys
 import dbSet
 from dbSet import set_db
+from data import Connection
 import data
 import random
 
@@ -18,13 +19,13 @@ class ModbusOperations(QObject):
     # Segnale che notifica il cambiamento del numero di pezzi sulla rulliera
     pezPresChanged1 = Signal()
     pezPresChanged2 = Signal()
+    dbpezPresChanged = Signal()
 
     def __init__(self):
         super().__init__()
         self._pezPres1 = 10 # Numero di pezzi presenti sulla prima rulliera
         self._pezPres2 = 10 # Numero di pezzi presenti sulla seconda rulliera
-        data.setParts(1, 10) # Imposto 10 pezzi sulla prima rulliera
-        data.setParts(2, 10) # Imposto 10 pezzi sulla seconda rulliera
+        self._dbpezPres = 10 # Numero di pezzi presenti nel database
 
     @Property(int, notify=pezPresChanged1)
     def pezPres1(self):
@@ -49,11 +50,22 @@ class ModbusOperations(QObject):
         if self._pezPres2 != value:
             self._pezPres2 = value
             self.pezPresChanged2.emit() #emetto il segnale di cambiamento
-            data.setParts(1, 10) # Imposto 10 pezzi sulla prima rulliera
-            data.setParts(2, 10) # Imposto 10 pezzi sulla seconda rulliera
+
+    @Property(int, notify=dbpezPresChanged)
+    def dbpezPres(self):
+        """Getter automatico per QML del database"""
+        return self._dbpezPres
+    
+    @dbpezPres.setter
+    def dbpezPres(self, value):
+        """Setter automatico, emette il segnale se cambia"""
+        if self._dbpezPres != value:
+            self._dbpezPres = value
+            self.dbpezPresChanged.emit() #emetto il segnale di cambiamento
 
     def start_operations(self):
         client = ModbusTcpClient('192.168.200.170', port=502)
+        data = Connection()
         # Leggo i toggle iniziali
         front_result1 = client.read_coils(address=0x00, count=1)
         back_result1 = client.read_coils(address=0x01, count=1)
@@ -64,7 +76,6 @@ class ModbusOperations(QObject):
         back_prectoggle1 = back_result1.bits[0]
         front_prectoggle2 = front_result2.bits[0]
         back_prectoggle2 = back_result2.bits[0]
-        conta_pezzi = 10
         while(True):
             front_result1 = client.read_coils(address=0, count=1)
             front_result2 = client.read_coils(address=2, count=1)
@@ -74,8 +85,8 @@ class ModbusOperations(QObject):
                 if (front_result1.isError() or back_result1.isError() or front_result2.isError() or back_result2.isError()):
                     print("Errore nella lettura dei toggle:", front_result1, back_result1, front_result2, back_result2)
                 else:
-                    print("Prima rulliera --> valore del toggle anteriore:" + str(front_result1.bits[0]) + ", valore del toggle posteriore:" + str(back_result1.bits[0]))
-                    print("Seconda rulliera --> valore del toggle anteriore:" + str(front_result2.bits[0]) + ", valore del toggle posteriore:" + str(back_result2.bits[0]))
+                    #print("Prima rulliera --> valore del toggle anteriore:" + str(front_result1.bits[0]) + ", valore del toggle posteriore:" + str(back_result1.bits[0]))
+                    #print("Seconda rulliera --> valore del toggle anteriore:" + str(front_result2.bits[0]) + ", valore del toggle posteriore:" + str(back_result2.bits[0]))
                     current_front_toggle1 = front_result1.bits[0]
                     current_back_toggle1 = back_result1.bits[0]
                     current_front_toggle2 = front_result2.bits[0]
@@ -83,35 +94,35 @@ class ModbusOperations(QObject):
                     # Controllo i cambiamenti di stato dei toggle nella PRIMA RULLIERA
                     if current_front_toggle1 != front_prectoggle1:
                         front_prectoggle1 = current_front_toggle1
-                        conta_pezzi += 1
                         self.pezPres1 += 1 # Aggiorno il valore globale per l'interfaccia grafica
                         data.insertPart(1) # Aggiungo un pezzo nel database
+                        self.dbpezPres = data.getParts(1)
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
+                        print(f"Pezzi presenti nel database: {self._dbpezPres}")
                     if current_back_toggle1 != back_prectoggle1:
                         back_prectoggle1 = current_back_toggle1
-                        conta_pezzi -= 1
                         self.pezPres1 -= 1 # Aggiorno il valore globale per l'interfaccia grafica
-                        print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
                         data.removePart(1) # Rimuovo un pezzo dal database
+                        self.dbpezPres = data.getParts(1)
+                        print(f"Pezzi presenti sulla rulliera: {self._pezPres1}")
+                        print(f"Pezzi presenti nel database: {self._dbpezPres}")
                     # Controllo i cambiamenti di stato dei toggle nella SECONDA RULLIERA
                     if current_front_toggle2 != front_prectoggle2:
                         front_prectoggle2 = current_front_toggle2
-                        conta_pezzi += 1
                         self.pezPres2 += 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
                         data.insertPart(2) # Aggiungo un pezzo nel database
                     if current_back_toggle2 != back_prectoggle2:
                         back_prectoggle2 = current_back_toggle2
-                        conta_pezzi -= 1
                         self.pezPres2 -= 1 # Aggiorno il valore globale per l'interfaccia grafica
                         print(f"Pezzi presenti sulla rulliera: {self._pezPres2}")
                         data.removePart(2) # Rimuovo un pezzo dal database
                     # Controllo se il numero di pezzi è sotto la soglia minima
-                    if self.pezPres1 < pz_min:
-                        print("Attenzione: numero di pezzi sotto la soglia minima!")
+                    #if self.pezPres1 < pz_min:
+                        #print("Attenzione: numero di pezzi sotto la soglia minima!")
                         # QUI DOVREI LANCIARE MISSIONE AD AMR
-                    if self.pezPres2 < pz_min:
-                        print("Attenzione: numero di pezzi sotto la soglia minima!")
+                    #if self.pezPres2 < pz_min:
+                        #print("Attenzione: numero di pezzi sotto la soglia minima!")
                         # QUI DOVREI LANCIARE MISSIONE AD AMR
                     if self.pezPres1 == 0:
                         time.sleep(5) #attendo 5 secondi
@@ -128,25 +139,33 @@ class ModbusOperations(QObject):
                 print("Chiusura del client Modbus TCP.")
                 client.close()
                 break
-                
-                
     #pz_pres = Property(int, get_pres, set_pres, notify=pz_pres_changed)
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     modbus_operations = ModbusOperations()
+    data = Connection()
     # Avvio impostazioni del database
     set_db()
+    # Qui inizializzo i valori iniziali delle rulliere nel database
+    data.setParts(1, 10)
+    data.setParts(2, 10)
+    results = data.getAllParts()
+    for row in results:
+        print(row)
     thread_modbus = threading.Thread(target=modbus_operations.start_operations)
-    thread_modbus.daemon = True
+    thread_modbus.daemon = True    
     thread_modbus.start()
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("modbusOperations", modbus_operations)
     #carico il file QML
     engine.load(QUrl.fromLocalFile(r"C:\Users\SIEMENS\Desktop\Zarattini_Andrea\Prova_QtGUI\semaforo_qml\main_varie_pagine.qml"))
 
-
     if not engine.rootObjects():
         sys.exit(-1)
 
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

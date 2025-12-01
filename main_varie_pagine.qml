@@ -36,6 +36,14 @@ ApplicationWindow {
         Page 
         {
             title: "Semaforo"
+            // Testo che mostra il valore dei pezzi presenti sul database
+            Text 
+            {
+                text: "Valore nel database: " + modbusOperations.dbpezPres + " (Prima Rulliera), " + modbusOperations.pezPres2 + " (Seconda Rulliera)"
+                font.pointSize: 15
+                horizontalAlignment: Text.AlignHCenter
+                Layout.alignment: Qt.AlignHCenter
+            }
 
             ColumnLayout 
             {
